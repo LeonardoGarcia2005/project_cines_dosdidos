@@ -1,0 +1,235 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --red: #c00;
+  --red-dark: #900;
+  --gold: #f90;
+  --purple: #4a1a6e;
+  --purple-dark: #2d0f42;
+  --white: #fff;
+  --gray-100: #f5f5f5;
+  --gray-200: #e8e8e8;
+  --gray-400: #999;
+  --gray-600: #555;
+  --text: #1a1a1a;
+  --radius: 14px;
+  --shadow: 0 20px 60px rgba(0,0,0,.18), 0 4px 16px rgba(0,0,0,.1);
+}
+
+body {
+  min-height: 100vh;
+  font-family: 'Outfit', sans-serif;
+  background: #0d0d14;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+/* ── Fondo cinematográfico ─────────────────────────── */
+.film-bg {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.film-strip {
+  position: absolute;
+  left: 0; right: 0;
+  height: 56px;
+  background: repeating-linear-gradient(
+    90deg,
+    #1a1a2e 0, #1a1a2e 36px,
+    #111 36px, #111 52px
+  );
+}
+.film-strip.top    { top: 0; }
+.film-strip.bottom { bottom: 0; }
+
+.spotlight {
+  position: absolute;
+  top: -200px; left: 10%;
+  width: 500px; height: 700px;
+  background: conic-gradient(
+    from 170deg at 50% 0%,
+    transparent 0deg,
+    rgba(192, 0, 0, .08) 20deg,
+    transparent 40deg
+  );
+  pointer-events: none;
+}
+.spotlight-2 {
+  position: absolute;
+  top: -200px; right: 5%;
+  width: 400px; height: 600px;
+  background: conic-gradient(
+    from 190deg at 50% 0%,
+    transparent 0deg,
+    rgba(255, 153, 0, .06) 20deg,
+    transparent 40deg
+  );
+}
+
+/* ── Wrapper ───────────────────────────────────────── */
+.login-wrapper {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 28px;
+  width: 100%;
+  max-width: 440px;
+  padding: 0 20px;
+}
+
+/* ── Brand ─────────────────────────────────────────── */
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  animation: fadeDown .5s ease both;
+}
+.brand-icon svg { width: 48px; height: 48px; }
+.brand-name {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 2.4rem;
+  letter-spacing: .08em;
+  color: #fff;
+  line-height: 1;
+}
+.brand-name span { color: var(--red); }
+
+/* ── Login card ────────────────────────────────────── */
+.login-card {
+  width: 100%;
+  background: #fff;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  animation: fadeUp .5s .1s ease both;
+}
+
+.card-header {
+  padding: 32px 36px 24px;
+  border-bottom: 1px solid var(--gray-200);
+}
+.card-header h1 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+.card-header p {
+  font-size: .875rem;
+  color: var(--gray-600);
+}
+
+.form {
+  padding: 24px 36px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.field label {
+  font-size: .8rem;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: .02em;
+}
+.field input {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1.5px solid var(--gray-200);
+  border-radius: 8px;
+  font-size: .9rem;
+  font-family: 'Outfit', sans-serif;
+  color: var(--text);
+  background: var(--gray-100);
+  outline: none;
+  transition: border-color .2s, background .2s, box-shadow .2s;
+}
+.field input:focus {
+  border-color: var(--purple);
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(74,26,110,.1);
+}
+
+/* Error message */
+.error-msg {
+  margin: 0 36px;
+  padding: 10px 14px;
+  background: #fff0f0;
+  border: 1px solid #ffd0d0;
+  border-radius: 8px;
+  border-left: 3px solid var(--red);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: .825rem;
+  color: #c00;
+}
+.error-msg.hidden { display: none; }
+
+/* Demo hint */
+.demo-hint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: .78rem;
+  color: var(--gray-600);
+  background: #f8f4ff;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid #e8d8ff;
+}
+.demo-hint svg { color: var(--purple); flex-shrink: 0; }
+.demo-hint strong { color: var(--purple); }
+
+/* Login button */
+.btn-login {
+  width: 100%;
+  padding: 14px;
+  background: var(--purple);
+  color: #fff;
+  border: none;
+  border-radius: 9px;
+  font-family: 'Outfit', sans-serif;
+  font-size: .95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .2s, transform .15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.btn-login:hover  { background: var(--purple-dark); }
+.btn-login:active { transform: scale(.98); }
+.btn-login:disabled { opacity: .6; cursor: not-allowed; }
+
+.btn-loader svg {
+  animation: spin .7s linear infinite;
+}
+.hidden { display: none !important; }
+
+.card-footer {
+  padding: 14px 36px;
+  background: var(--gray-100);
+  border-top: 1px solid var(--gray-200);
+  text-align: center;
+  font-size: .75rem;
+  color: var(--gray-400);
+}
+
+/* ── Animations ────────────────────────────────────── */
+@keyframes fadeDown { from { opacity:0; transform: translateY(-16px); } to { opacity:1; transform: translateY(0); } }
+@keyframes fadeUp   { from { opacity:0; transform: translateY(16px);  } to { opacity:1; transform: translateY(0); } }
+@keyframes spin     { to { transform: rotate(360deg); } }

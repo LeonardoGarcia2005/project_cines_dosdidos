@@ -1,0 +1,56 @@
+{
+  "name": "cines-unidos",
+  "version": "1.0.0",
+  "description": "Cines Unidos - Sistema de reservas de asientos con concurrencia",
+  "type": "module",
+  "main": "electron/main.js",
+  "scripts": {
+    "start": "node backend/server.js",
+    "seed": "node backend/seed.js",
+    "electron": "electron .",
+    "electron:dev": "electron . --dev",
+    "build": "electron-builder --win",
+    "build:dir": "electron-builder --win --dir",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "build": {
+    "appId": "com.cinesunidos.app",
+    "productName": "Cines Unidos",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "electron/**/*",
+      "backend/**/*",
+      "frontend/**/*",
+      "!backend/node_modules/**/*",
+      "!**/*.md"
+    ],
+    "extraResources": [
+      {
+        "from": "backend/cines_unidos.db",
+        "to": "backend/cines_unidos.db"
+      }
+    ],
+    "win": {
+      "target": "portable",
+      "icon": "frontend/public/img/icon.png"
+    },
+    "asar": true
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "better-sqlite3": "^11.7.0",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.3"
+  },
+  "devDependencies": {
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8"
+  }
+}
