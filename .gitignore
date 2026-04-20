@@ -17,12 +17,6 @@ out/
 .env.production.local
 backend/.env
 
-# Databases (SQLite)
-*.db
-*.db-journal
-*.db-shm
-*.db-wal
-
 # OS files
 .DS_Store
 Thumbs.db

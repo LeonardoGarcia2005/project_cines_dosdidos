@@ -9,7 +9,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'cines_unidos_secret_dev';
 // ============================================================
 // POST /api/auth/login
 // ============================================================
-router.post('/login', (req, res) => {
+router.post('/login', async (req, res) => {
   const { username, password } = req.body;
 
   if (!username || !password) {
@@ -17,11 +17,12 @@ router.post('/login', (req, res) => {
   }
 
   try {
-    const user = db.prepare(
+    const stmt = await db.prepare(
       `SELECT id, username, email, password
        FROM users
        WHERE username = ? OR email = ?`
-    ).get(username, username);
+    );
+    const user = await stmt.get(username, username);
 
     if (!user) {
       return res.status(401).json({ error: 'Credenciales inválidas' });

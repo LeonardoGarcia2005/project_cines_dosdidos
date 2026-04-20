@@ -1,5 +1,5 @@
 import express from 'express';
-import { db } from '../db.js';
+import { db, dbPromise } from '../db.js';
 import { authenticateToken } from './auth.js';
 
 const router = express.Router();
@@ -9,24 +9,25 @@ const HOLD_DURATION_SECONDS = 60;
 // ============================================================
 // GET /api/seats/:screeningId
 // ============================================================
-router.get('/:screeningId', authenticateToken, (req, res) => {
+router.get('/:screeningId', authenticateToken, async (req, res) => {
   const { screeningId } = req.params;
   const sessionId = req.headers['x-session-id'];
 
   try {
     // Limpiar holds expirados
-    const released = db.prepare(`
+    const releasedStmt = await db.prepare(`
       UPDATE seats
       SET    status = 'available', held_by = NULL, held_until = NULL
       WHERE  screening_id = ? AND status = 'held' AND held_until < datetime('now')
-    `).run(screeningId);
+    `);
+    const released = await releasedStmt.run(screeningId);
 
     if (released.changes > 0) {
       console.log(`\x1b[33m[HOLD EXPIRED]\x1b[0m Liberados ${released.changes} asientos expirados`);
     }
 
     // Obtener asientos
-    const seats = db.prepare(`
+    const seatsStmt = await db.prepare(`
       SELECT
         s.id, s.row_letter, s.col_number, s.seat_type, s.status,
         s.held_by, s.held_until, s.reserved_by,
@@ -39,18 +40,20 @@ router.get('/:screeningId', authenticateToken, (req, res) => {
       FROM seats s
       WHERE s.screening_id = ?
       ORDER BY s.row_letter, s.col_number
-    `).all(sessionId || '', screeningId);
+    `);
+    const seats = await seatsStmt.all(sessionId || '', screeningId);
 
     // Convert is_mine from 0/1 to boolean
     seats.forEach(s => { s.is_mine = !!s.is_mine; });
 
     // Info de la función
-    const screening = db.prepare(`
+    const screeningStmt = await db.prepare(`
       SELECT sc.id, sc.room, sc.starts_at, m.title, m.genre, m.duration, m.rating
       FROM screenings sc
       JOIN movies m ON m.id = sc.movie_id
       WHERE sc.id = ?
-    `).get(screeningId);
+    `);
+    const screening = await screeningStmt.get(screeningId);
 
     const stats = {
       total: seats.length,
@@ -70,7 +73,7 @@ router.get('/:screeningId', authenticateToken, (req, res) => {
 // ============================================================
 // POST /api/seats/:screeningId/hold
 // ============================================================
-router.post('/:screeningId/hold', authenticateToken, (req, res) => {
+router.post('/:screeningId/hold', authenticateToken, async (req, res) => {
   const { screeningId } = req.params;
   const { seatId } = req.body;
   const userId = req.user.userId;
@@ -83,23 +86,26 @@ router.post('/:screeningId/hold', authenticateToken, (req, res) => {
   console.log(`\n\x1b[35m[HOLD ATTEMPT]\x1b[0m Usuario ${req.user.username} (session: ${sessionId.slice(0,8)}...) → Asiento #${seatId}`);
 
   try {
-    const result = db.transaction(() => {
+    const database = await dbPromise;
+    const result = await db.transaction(async () => {
       console.log(`\x1b[36m[TXN]\x1b[0m BEGIN - Intentando hold del asiento #${seatId}`);
 
-      const seat = db.prepare(`
+      const seatStmt = await db.prepare(`
         SELECT id, row_letter, col_number, status, held_by, held_until, reserved_by
         FROM seats WHERE id = ? AND screening_id = ?
-      `).get(seatId, screeningId);
+      `);
+      const seat = await seatStmt.get(seatId, screeningId);
 
       if (!seat) throw new Error('Asiento no encontrado');
 
       console.log(`\x1b[36m[TXN]\x1b[0m Asiento ${seat.row_letter}${seat.col_number} → estado actual: ${seat.status}`);
 
       if (seat.status === 'reserved') {
-        db.prepare(`
+        const logStmt = await db.prepare(`
           INSERT INTO reservations (seat_id, user_id, session_id, action, detail)
           VALUES (?, ?, ?, 'conflict', 'Asiento ya reservado definitivamente')
-        `).run(seatId, userId, sessionId);
+        `);
+        await logStmt.run(seatId, userId, sessionId);
 
         throw Object.assign(
           new Error('Este asiento ya fue reservado por otro usuario'),
@@ -109,12 +115,13 @@ router.post('/:screeningId/hold', authenticateToken, (req, res) => {
 
       if (seat.status === 'held') {
         if (seat.held_by === sessionId) {
-          const updated = db.prepare(`
+          const updateStmt = await db.prepare(`
             UPDATE seats
             SET held_until = datetime('now', '+${HOLD_DURATION_SECONDS} seconds')
             WHERE id = ?
             RETURNING id, row_letter, col_number, status, held_until
-          `).get(seatId);
+          `);
+          const updated = await updateStmt.get(seatId);
 
           console.log(`\x1b[32m[TXN]\x1b[0m Hold extendido para el mismo usuario`);
           return { action: 'extended', seat: updated };
@@ -123,10 +130,11 @@ router.post('/:screeningId/hold', authenticateToken, (req, res) => {
         if (seat.held_until && new Date(seat.held_until) < new Date()) {
           console.log(`\x1b[33m[TXN]\x1b[0m Hold expirado, tomando el asiento...`);
         } else {
-          db.prepare(`
+          const logStmt = await db.prepare(`
             INSERT INTO reservations (seat_id, user_id, session_id, action, detail)
             VALUES (?, ?, ?, 'conflict', 'Asiento en hold por otro usuario')
-          `).run(seatId, userId, sessionId);
+          `);
+          await logStmt.run(seatId, userId, sessionId);
 
           throw Object.assign(
             new Error('Este asiento ya está siendo seleccionado por otro usuario'),
@@ -135,17 +143,19 @@ router.post('/:screeningId/hold', authenticateToken, (req, res) => {
         }
       }
 
-      const updated = db.prepare(`
+      const updateStmt = await db.prepare(`
         UPDATE seats
         SET status = 'held', held_by = ?, held_until = datetime('now', '+${HOLD_DURATION_SECONDS} seconds')
         WHERE id = ?
         RETURNING id, row_letter, col_number, status, held_until
-      `).get(sessionId, seatId);
+      `);
+      const updated = await updateStmt.get(sessionId, seatId);
 
-      db.prepare(`
+      const logStmt = await db.prepare(`
         INSERT INTO reservations (seat_id, user_id, session_id, action, detail)
         VALUES (?, ?, ?, 'held', 'Hold aplicado exitosamente')
-      `).run(seatId, userId, sessionId);
+      `);
+      await logStmt.run(seatId, userId, sessionId);
 
       console.log(`\x1b[32m[TXN]\x1b[0m COMMIT - Hold exitoso: ${updated.row_letter}${updated.col_number}`);
       return { action: 'held', seat: updated };
@@ -174,7 +184,7 @@ router.post('/:screeningId/hold', authenticateToken, (req, res) => {
 // ============================================================
 // POST /api/seats/:screeningId/confirm
 // ============================================================
-router.post('/:screeningId/confirm', authenticateToken, (req, res) => {
+router.post('/:screeningId/confirm', authenticateToken, async (req, res) => {
   const { screeningId } = req.params;
   const { seatIds } = req.body;
   const userId = req.user.userId;
@@ -187,15 +197,16 @@ router.post('/:screeningId/confirm', authenticateToken, (req, res) => {
   console.log(`\n\x1b[35m[CONFIRM ATTEMPT]\x1b[0m Usuario ${req.user.username} → Asientos: [${seatIds.join(', ')}]`);
 
   try {
-    const result = db.transaction(() => {
+    const result = await db.transaction(async () => {
       console.log(`\x1b[36m[TXN SERIALIZABLE]\x1b[0m BEGIN`);
 
       const placeholders = seatIds.map(() => '?').join(',');
-      const seats = db.prepare(`
+      const seatsStmt = await db.prepare(`
         SELECT id, row_letter, col_number, status, held_by, held_until
         FROM seats
         WHERE id IN (${placeholders}) AND screening_id = ?
-      `).all(...seatIds, screeningId);
+      `);
+      const seats = await seatsStmt.all(...seatIds, screeningId);
 
       if (seats.length !== seatIds.length) {
         throw new Error('Uno o más asientos no encontrados');
@@ -217,19 +228,20 @@ router.post('/:screeningId/confirm', authenticateToken, (req, res) => {
         );
       }
 
-      db.prepare(`
+      const updateStmt = await db.prepare(`
         UPDATE seats
         SET status = 'reserved', reserved_by = ?, reserved_at = datetime('now'),
             held_by = NULL, held_until = NULL
         WHERE id IN (${placeholders})
-      `).run(userId, ...seatIds);
+      `);
+      await updateStmt.run(userId, ...seatIds);
 
-      const insertLog = db.prepare(`
+      const insertLogStmt = await db.prepare(`
         INSERT INTO reservations (seat_id, user_id, session_id, action, detail)
         VALUES (?, ?, ?, 'reserved', ?)
       `);
       for (const s of seats) {
-        insertLog.run(s.id, userId, sessionId, `Reserva confirmada: ${s.row_letter}${s.col_number}`);
+        await insertLogStmt.run(s.id, userId, sessionId, `Reserva confirmada: ${s.row_letter}${s.col_number}`);
       }
 
       console.log(`\x1b[32m[TXN SERIALIZABLE]\x1b[0m COMMIT - ${seats.length} asientos reservados`);
@@ -256,23 +268,25 @@ router.post('/:screeningId/confirm', authenticateToken, (req, res) => {
 // ============================================================
 // DELETE /api/seats/:screeningId/release
 // ============================================================
-router.delete('/:screeningId/release', authenticateToken, (req, res) => {
+router.delete('/:screeningId/release', authenticateToken, async (req, res) => {
   const { screeningId } = req.params;
   const { seatId } = req.body;
   const sessionId = req.headers['x-session-id'];
 
   try {
-    const result = db.prepare(`
+    const updateStmt = await db.prepare(`
       UPDATE seats
       SET status = 'available', held_by = NULL, held_until = NULL
       WHERE id = ? AND screening_id = ? AND held_by = ? AND status = 'held'
-    `).run(seatId, screeningId, sessionId);
+    `);
+    const result = await updateStmt.run(seatId, screeningId, sessionId);
 
     if (result.changes > 0) {
-      db.prepare(`
+      const logStmt = await db.prepare(`
         INSERT INTO reservations (seat_id, user_id, session_id, action, detail)
         VALUES (?, ?, ?, 'released', 'Asiento liberado por el usuario')
-      `).run(seatId, req.user.userId, sessionId);
+      `);
+      await logStmt.run(seatId, req.user.userId, sessionId);
     }
 
     res.json({ success: true, released: result.changes > 0 });
@@ -284,9 +298,9 @@ router.delete('/:screeningId/release', authenticateToken, (req, res) => {
 // ============================================================
 // GET /api/seats/:screeningId/logs
 // ============================================================
-router.get('/:screeningId/logs', authenticateToken, (req, res) => {
+router.get('/:screeningId/logs', authenticateToken, async (req, res) => {
   try {
-    const logs = db.prepare(`
+    const logsStmt = await db.prepare(`
       SELECT
         r.id, r.action, r.detail, r.session_id, r.created_at,
         u.username,
@@ -297,7 +311,8 @@ router.get('/:screeningId/logs', authenticateToken, (req, res) => {
       WHERE s.screening_id = ?
       ORDER BY r.created_at DESC
       LIMIT 50
-    `).all(req.params.screeningId);
+    `);
+    const logs = await logsStmt.all(req.params.screeningId);
 
     res.json({ logs });
   } catch (err) {

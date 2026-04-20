@@ -1,4 +1,5 @@
-import Database from 'better-sqlite3';
+import sqlite3 from 'sqlite3';
+import { open } from 'sqlite';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
@@ -37,16 +38,22 @@ function getDbPath() {
 
 const DB_PATH = getDbPath();
 
-const db = new Database(DB_PATH);
+// Create database connection
+const dbPromise = open({
+  filename: DB_PATH,
+  driver: sqlite3.Database
+});
 
-db.pragma('journal_mode = WAL');
-db.pragma('foreign_keys = ON');
-
-function initSchema() {
+// Initialize schema
+async function initSchema() {
+  const db = await dbPromise;
   const schemaPath = path.join(__dirname, 'schema.sql');
   const sql = fs.readFileSync(schemaPath, 'utf8');
   try {
-    db.exec(sql);
+    await db.exec(sql);
+    await db.exec('PRAGMA journal_mode = WAL');
+    await db.exec('PRAGMA foreign_keys = ON');
+    console.log('[DB] Schema inicializado');
   } catch (err) {
     if (!err.message.includes('already exists')) {
       console.error('[SCHEMA ERROR]', err.message);
@@ -54,6 +61,38 @@ function initSchema() {
   }
 }
 
-initSchema();
+await initSchema();
 
-export { db };
+// Wrapper to maintain compatibility with better-sqlite3 API
+const db = {
+  async prepare(sql) {
+    const database = await dbPromise;
+    const stmt = await database.prepare(sql);
+    return {
+      run: async (...params) => stmt.run(...params),
+      get: async (...params) => stmt.get(...params),
+      all: async (...params) => stmt.all(...params)
+    };
+  },
+  async exec(sql) {
+    const database = await dbPromise;
+    return database.exec(sql);
+  },
+  transaction(fn) {
+    return async (...args) => {
+      const database = await dbPromise;
+      await database.run('BEGIN TRANSACTION');
+      try {
+        const result = await fn(...args);
+        await database.run('COMMIT');
+        return result;
+      } catch (err) {
+        await database.run('ROLLBACK');
+        throw err;
+      }
+    };
+  },
+  _db: dbPromise
+};
+
+export { db, dbPromise };
