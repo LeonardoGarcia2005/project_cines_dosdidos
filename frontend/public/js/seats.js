@@ -4,7 +4,7 @@
 // ============================================================
 
 const SCREENING_ID = 1;
-const ROWS         = ['M','L','K','J','I','H','G','F','E','D','C','B','A']; 
+const ROWS = ['M', 'L', 'K', 'J', 'I', 'H', 'G', 'F', 'E', 'D', 'C', 'B', 'A'];
 
 // Map UI column to DB column (UI 8-27 → DB 9-28, UI 1-7 → DB 1-7)
 function uiColToDbCol(uiCol) {
@@ -19,11 +19,11 @@ function dbColToUiCol(dbCol) {
 }
 
 // Estado local
-let seatsData   = [];   // todos los asientos del backend
+let seatsData = [];   // todos los asientos del backend
 let selectedIds = [];   // IDs en hold del usuario actual
 let holdTimerInterval = null;
-let holdExpiresAt     = null;
-let pollInterval      = null;
+let holdExpiresAt = null;
+let pollInterval = null;
 
 // ── Inicialización ──────────────────────────────────
 (async function init() {
@@ -191,9 +191,9 @@ function renderGrid(fullRender) {
 
 function getSeatClass(seat) {
   const isHandicap = seat.seat_type === 'handicap';
-  if (seat.is_mine)              return `mine${isHandicap ? ' handicap' : ''}`;
+  if (seat.is_mine) return `mine${isHandicap ? ' handicap' : ''}`;
   if (seat.status === 'reserved') return `reserved${isHandicap ? ' handicap' : ''} disabled`;
-  if (seat.status === 'held')    return `held-other${isHandicap ? ' handicap' : ''} disabled`;
+  if (seat.status === 'held') return `held-other${isHandicap ? ' handicap' : ''} disabled`;
   if (seat.status === 'available') return `available${isHandicap ? ' handicap' : ''}`;
   return 'disabled';
 }
@@ -201,9 +201,9 @@ function getSeatClass(seat) {
 function getSeatTitle(seat) {
   const uiCol = dbColToUiCol(seat.col_number);
   const label = `${seat.row_letter}${uiCol}`;
-  if (seat.is_mine)               return `${label} - Tu selección`;
+  if (seat.is_mine) return `${label} - Tu selección`;
   if (seat.status === 'reserved') return `${label} - Reservado`;
-  if (seat.status === 'held')     return `${label} - En selección por otro usuario`;
+  if (seat.status === 'held') return `${label} - En selección por otro usuario`;
   return `${label} - Disponible`;
 }
 
@@ -313,9 +313,9 @@ async function confirmReservation() {
 
 // ── Sincronizar lista lateral ───────────────────────
 function syncSelectedList() {
-  const list   = document.getElementById('selected-list');
-  const btn    = document.getElementById('confirm-btn');
-  const timer  = document.getElementById('hold-timer-wrap');
+  const list = document.getElementById('selected-list');
+  const btn = document.getElementById('confirm-btn');
+  const timer = document.getElementById('hold-timer-wrap');
 
   const mySeats = seatsData.filter(s => s.is_mine);
   // Actualizar selectedIds para que coincida con el servidor
@@ -352,8 +352,8 @@ function syncSelectedList() {
 // ── Stats ───────────────────────────────────────────
 function updateStats(stats) {
   document.getElementById('stat-available').textContent = stats.available;
-  document.getElementById('stat-held').textContent      = stats.held;
-  document.getElementById('stat-reserved').textContent  = stats.reserved;
+  document.getElementById('stat-held').textContent = stats.held;
+  document.getElementById('stat-reserved').textContent = stats.reserved;
 
   const myCount = seatsData.filter(s => s.is_mine).length;
   const mineWrap = document.getElementById('stat-mine-wrap');
@@ -381,7 +381,7 @@ function startHoldTimer() {
 function stopHoldTimer() {
   if (holdTimerInterval) clearInterval(holdTimerInterval);
   holdTimerInterval = null;
-  holdExpiresAt     = null;
+  holdExpiresAt = null;
 }
 
 // ── Transaction logs ────────────────────────────────
@@ -389,7 +389,7 @@ async function loadLogs() {
   try {
     const data = await SeatsAPI.getLogs(SCREENING_ID);
     renderLogs(data.logs || []);
-  } catch {}
+  } catch { }
 }
 
 function renderLogs(logs) {
@@ -420,13 +420,109 @@ let toastTimeout;
 function showToast(type, title, msg) {
   const toast = document.getElementById('toast');
   document.getElementById('toast-title').textContent = title;
-  document.getElementById('toast-msg').textContent   = msg;
+  document.getElementById('toast-msg').textContent = msg;
 
   toast.className = `toast ${type}`;
   toast.classList.remove('hidden');
 
   if (toastTimeout) clearTimeout(toastTimeout);
   toastTimeout = setTimeout(() => toast.classList.add('hidden'), 5000);
+}
+
+// ── Backup ──────────────────────────────────────────
+let backupProgressInterval = null;
+
+async function createBackup() {
+  const btn = document.getElementById('btn-backup');
+  btn.disabled = true;
+
+  // Mostrar overlay
+  const overlay = document.getElementById('backup-overlay');
+  overlay.classList.remove('hidden');
+
+  // Reset estado visual
+  document.getElementById('backup-spinner').classList.remove('hidden');
+  document.getElementById('backup-check').classList.add('hidden');
+  document.getElementById('backup-error-icon').classList.add('hidden');
+  document.getElementById('backup-title').textContent = 'Creando Backup...';
+  document.getElementById('backup-desc').textContent = 'Copiando base de datos al servidor';
+  document.getElementById('backup-progress-wrap').classList.remove('hidden');
+  document.getElementById('backup-details').classList.add('hidden');
+  document.getElementById('backup-close-btn').classList.add('hidden');
+  document.getElementById('backup-progress-fill').className = 'backup-progress-fill';
+  document.getElementById('backup-progress-fill').style.width = '0%';
+  document.getElementById('backup-progress-text').textContent = '0%';
+
+  // Simular progreso animado mientras se crea el backup
+  let progress = 0;
+  backupProgressInterval = setInterval(() => {
+    if (progress < 85) {
+      progress += Math.random() * 12 + 3;
+      if (progress > 85) progress = 85;
+      const fill = document.getElementById('backup-progress-fill');
+      fill.style.width = progress + '%';
+      document.getElementById('backup-progress-text').textContent = Math.round(progress) + '%';
+    }
+  }, 200);
+
+  try {
+    const result = await BackupAPI.create();
+
+    // Completar la barra al 100%
+    clearInterval(backupProgressInterval);
+    backupProgressInterval = null;
+
+    const fill = document.getElementById('backup-progress-fill');
+    fill.style.width = '100%';
+    fill.classList.add('complete');
+    document.getElementById('backup-progress-text').textContent = '100%';
+
+    // Cambiar ícono a check
+    document.getElementById('backup-spinner').classList.add('hidden');
+    document.getElementById('backup-check').classList.remove('hidden');
+
+    // Actualizar textos
+    document.getElementById('backup-title').textContent = '¡Backup Creado!';
+    document.getElementById('backup-desc').textContent = 'La copia de seguridad se generó correctamente';
+
+    // Mostrar detalles
+    document.getElementById('backup-filename').textContent = result.backup.filename;
+    document.getElementById('backup-original-size').textContent = result.backup.originalSize;
+    document.getElementById('backup-size').textContent = result.backup.backupSize;
+    document.getElementById('backup-total').textContent = result.totalBackups;
+    document.getElementById('backup-details').classList.remove('hidden');
+    document.getElementById('backup-close-btn').classList.remove('hidden');
+
+    showToast('success', '💾 Backup creado', `${result.backup.filename} (${result.backup.backupSize})`);
+
+  } catch (err) {
+    clearInterval(backupProgressInterval);
+    backupProgressInterval = null;
+
+    const fill = document.getElementById('backup-progress-fill');
+    fill.style.width = '100%';
+    fill.classList.add('error');
+    document.getElementById('backup-progress-text').textContent = 'Error';
+
+    document.getElementById('backup-spinner').classList.add('hidden');
+    document.getElementById('backup-error-icon').classList.remove('hidden');
+
+    document.getElementById('backup-title').textContent = 'Error al crear Backup';
+    document.getElementById('backup-desc').textContent = err.message || 'No se pudo completar el backup';
+    document.getElementById('backup-close-btn').classList.remove('hidden');
+
+    showToast('error', '❌ Error en backup', err.message);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function closeBackupOverlay() {
+  document.getElementById('backup-overlay').classList.add('hidden');
+  if (backupProgressInterval) {
+    clearInterval(backupProgressInterval);
+    backupProgressInterval = null;
+  }
 }
 
 // ── Utils ───────────────────────────────────────────

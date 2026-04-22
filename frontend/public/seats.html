@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Cines Unidos - Selección de Asientos</title>
+  <title>Cines Separados - Selección de Asientos</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/seats.css">
@@ -17,7 +17,7 @@
         <div class="brand-icon">
           <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
             <circle cx="20" cy="20" r="19" fill="url(#brandGrad2)" stroke="#c00" stroke-width="1.5"/>
-            <text x="20" y="27" text-anchor="middle" font-family="Arial Black" font-size="20" font-weight="900" fill="white">1</text>
+            <text x="20" y="27" text-anchor="middle" font-family="Arial Black" font-size="20" font-weight="900" fill="white">2</text>
             <defs>
               <radialGradient id="brandGrad2" cx="35%" cy="35%">
                 <stop offset="0%" stop-color="#ffe066"/>
@@ -25,10 +25,10 @@
                 <stop offset="70%" stop-color="#c00"/>
                 <stop offset="100%" stop-color="#006"/>
               </radialGradient>
-            </defs>
+            </defs> 
           </svg>
         </div>
-        <span class="brand-name">CINES<span>UNIDOS</span></span>
+        <span class="brand-name">CINES<span>SEPARADOS</span></span>
       </div>
 
       <div class="movie-info">
@@ -43,6 +43,14 @@
           </svg>
           <span id="username-display">Usuario</span>
         </div>
+        <button class="btn-backup" onclick="createBackup()" id="btn-backup" title="Crear backup de la base de datos">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="17 8 12 3 7 8"/>
+            <line x1="12" y1="3" x2="12" y2="15"/>
+          </svg>
+          Backup
+        </button>
         <button class="btn-logout" onclick="logout()">Salir</button>
       </div>
     </div>
@@ -179,6 +187,58 @@
       </div>
     </div>
   </main>
+
+  <!-- Backup Overlay -->
+  <div id="backup-overlay" class="backup-overlay hidden">
+    <div class="backup-modal">
+      <div class="backup-icon-wrap">
+        <div class="backup-spinner" id="backup-spinner">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="17 8 12 3 7 8"/>
+            <line x1="12" y1="3" x2="12" y2="15"/>
+          </svg>
+        </div>
+        <div class="backup-check hidden" id="backup-check">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#2ecc71" stroke-width="2.5">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+        </div>
+        <div class="backup-error hidden" id="backup-error-icon">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#e74c3c" stroke-width="2.5">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </div>
+      </div>
+      <div class="backup-title" id="backup-title">Creando Backup...</div>
+      <div class="backup-desc" id="backup-desc">Copiando base de datos al servidor</div>
+      <div class="backup-progress-wrap" id="backup-progress-wrap">
+        <div class="backup-progress-bar">
+          <div class="backup-progress-fill" id="backup-progress-fill"></div>
+        </div>
+        <div class="backup-progress-text" id="backup-progress-text">0%</div>
+      </div>
+      <div class="backup-details hidden" id="backup-details">
+        <div class="backup-detail-row">
+          <span>Archivo:</span>
+          <span id="backup-filename">-</span>
+        </div>
+        <div class="backup-detail-row">
+          <span>Tamaño original:</span>
+          <span id="backup-original-size">-</span>
+        </div>
+        <div class="backup-detail-row">
+          <span>Tamaño backup:</span>
+          <span id="backup-size">-</span>
+        </div>
+        <div class="backup-detail-row">
+          <span>Total backups:</span>
+          <span id="backup-total">-</span>
+        </div>
+      </div>
+      <button class="backup-close-btn hidden" id="backup-close-btn" onclick="closeBackupOverlay()">Cerrar</button>
+    </div>
+  </div>
 
   <!-- Toast notification -->
   <div id="toast" class="toast hidden">

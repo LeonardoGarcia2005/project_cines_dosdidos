@@ -640,3 +640,198 @@ body {
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+/* ── Backup Button ──────────────────────────────────── */
+.btn-backup {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: rgba(41, 128, 185, 0.12);
+  border: 1px solid rgba(41, 128, 185, 0.35);
+  border-radius: 6px;
+  color: var(--blue-light);
+  font-family: 'Outfit', sans-serif;
+  font-size: .8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .25s;
+}
+.btn-backup:hover {
+  background: rgba(41, 128, 185, 0.22);
+  border-color: rgba(41, 128, 185, 0.6);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(41, 128, 185, 0.25);
+}
+.btn-backup:active { transform: translateY(0); }
+.btn-backup:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ── Backup Overlay ─────────────────────────────────── */
+.backup-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  animation: fadeInOverlay .25s ease;
+}
+.backup-overlay.hidden { display: none !important; }
+
+.backup-modal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 36px 40px;
+  min-width: 380px;
+  max-width: 440px;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  animation: scaleInModal .3s cubic-bezier(.34, 1.56, .64, 1);
+}
+
+.backup-icon-wrap {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.backup-spinner {
+  color: var(--blue-light);
+  animation: backupBounce 1.4s ease-in-out infinite;
+}
+.backup-spinner.hidden { display: none; }
+
+.backup-check {
+  animation: checkPop .4s cubic-bezier(.34, 1.56, .64, 1);
+}
+.backup-check.hidden { display: none; }
+
+.backup-error {
+  animation: checkPop .4s cubic-bezier(.34, 1.56, .64, 1);
+}
+.backup-error.hidden { display: none; }
+
+.backup-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+.backup-desc {
+  font-size: .82rem;
+  color: var(--text-muted);
+  margin-bottom: 20px;
+}
+
+/* Progress bar */
+.backup-progress-wrap {
+  margin-bottom: 20px;
+}
+.backup-progress-wrap.hidden { display: none; }
+
+.backup-progress-bar {
+  width: 100%;
+  height: 8px;
+  background: var(--surface2);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+.backup-progress-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--blue), var(--blue-light), #5dade2);
+  background-size: 200% 100%;
+  border-radius: 4px;
+  transition: width .3s ease;
+  animation: shimmer 1.5s ease infinite;
+}
+.backup-progress-fill.complete {
+  background: linear-gradient(90deg, var(--green), var(--green-light));
+  animation: none;
+}
+.backup-progress-fill.error {
+  background: linear-gradient(90deg, var(--red), var(--red-light));
+  animation: none;
+}
+
+.backup-progress-text {
+  font-size: .75rem;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Details */
+.backup-details {
+  background: var(--surface2);
+  border-radius: 10px;
+  padding: 14px 18px;
+  margin-bottom: 18px;
+  text-align: left;
+}
+.backup-details.hidden { display: none; }
+
+.backup-detail-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 5px 0;
+  font-size: .8rem;
+  border-bottom: 1px solid var(--border);
+}
+.backup-detail-row:last-child { border-bottom: none; }
+.backup-detail-row span:first-child { color: var(--text-muted); }
+.backup-detail-row span:last-child { color: var(--text); font-weight: 600; }
+
+/* Close button */
+.backup-close-btn {
+  padding: 10px 28px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-family: 'Outfit', sans-serif;
+  font-size: .85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .2s;
+}
+.backup-close-btn:hover {
+  background: var(--border);
+  border-color: var(--text-muted);
+}
+.backup-close-btn.hidden { display: none; }
+
+/* ── Backup Animations ──────────────────────────────── */
+@keyframes fadeInOverlay {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes scaleInModal {
+  from { opacity: 0; transform: scale(.85); }
+  to   { opacity: 1; transform: scale(1); }
+}
+@keyframes backupBounce {
+  0%, 100% { transform: translateY(0); }
+  30%      { transform: translateY(-8px); }
+  50%      { transform: translateY(0); }
+  70%      { transform: translateY(-4px); }
+}
+@keyframes shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+@keyframes checkPop {
+  from { opacity: 0; transform: scale(.5); }
+  to   { opacity: 1; transform: scale(1); }
+}

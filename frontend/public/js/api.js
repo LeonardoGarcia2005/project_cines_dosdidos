@@ -118,3 +118,23 @@ const SeatsAPI = {
     return res.json();
   }
 };
+
+// ── Backup ──────────────────────────────────────────
+const BackupAPI = {
+  async create() {
+    const res = await fetch(`${API_BASE}/backup`, {
+      method: 'POST',
+      headers: buildHeaders(),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error al crear backup');
+    return data;
+  },
+
+  async list() {
+    const res = await fetch(`${API_BASE}/backups`, {
+      headers: buildHeaders(),
+    });
+    return res.json();
+  }
+};
