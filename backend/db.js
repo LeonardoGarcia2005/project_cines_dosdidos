@@ -7,32 +7,7 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-let electronApp = null;
-try {
-  if (process.env.ELECTRON === 'true') {
-    const electron = await import('electron');
-    electronApp = electron.app;
-  }
-} catch (e) {
-  // Not running inside Electron
-}
-
 function getDbPath() {
-  if (process.env.ELECTRON === 'true' && electronApp) {
-    const userDataPath = electronApp.getPath('userData');
-    const dbDir = path.join(userDataPath, 'database');
-    if (!fs.existsSync(dbDir)) {
-      fs.mkdirSync(dbDir, { recursive: true });
-    }
-    const dbPath = path.join(dbDir, 'cines_unidos.db');
-    if (!fs.existsSync(dbPath)) {
-      const bundledDb = path.join(process.resourcesPath, 'backend', 'cines_unidos.db');
-      if (fs.existsSync(bundledDb)) {
-        fs.copyFileSync(bundledDb, dbPath);
-      }
-    }
-    return dbPath;
-  }
   return path.join(__dirname, 'cines_unidos.db');
 }
 
@@ -42,6 +17,9 @@ const DB_PATH = getDbPath();
 const dbPromise = open({
   filename: DB_PATH,
   driver: sqlite3.Database
+}).then(async (database) => {
+  await database.configure('busyTimeout', 5000);
+  return database;
 });
 
 // Initialize schema
@@ -67,11 +45,10 @@ await initSchema();
 const db = {
   async prepare(sql) {
     const database = await dbPromise;
-    const stmt = await database.prepare(sql);
     return {
-      run: async (...params) => stmt.run(...params),
-      get: async (...params) => stmt.get(...params),
-      all: async (...params) => stmt.all(...params)
+      run: async (...params) => database.run(sql, ...params),
+      get: async (...params) => database.get(sql, ...params),
+      all: async (...params) => database.all(sql, ...params)
     };
   },
   async exec(sql) {

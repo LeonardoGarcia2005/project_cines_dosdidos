@@ -482,7 +482,7 @@ body {
 .btn-refresh-logs:hover { color: var(--text); }
 
 .logs-container {
-  max-height: 240px;
+  max-height: 297px;
   overflow-y: auto;
   padding: 10px;
   display: flex;
